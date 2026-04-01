@@ -1,0 +1,55 @@
+name: Rebuild Leaderboard
+
+on:
+  schedule:
+    # Run at 10:00 AM UTC, Monday to Friday
+    # This ensures leaderboard is updated before 11:00 AM workday deadline
+    - cron: '0 10 * * 1-5'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Verify data files exist
+        run: |
+          echo "Verifying JSON data files..."
+          test -f src/data/players.json && echo "✓ players.json found"
+          test -f src/data/games.json && echo "✓ games.json found"
+          test -f src/data/scores.json && echo "✓ scores.json found"
+      
+      - name: Validate JSON structure
+        run: |
+          echo "Validating JSON files..."
+          node -e "JSON.parse(require('fs').readFileSync('src/data/players.json', 'utf8'))" && echo "✓ players.json is valid"
+          node -e "JSON.parse(require('fs').readFileSync('src/data/games.json', 'utf8'))" && echo "✓ games.json is valid"
+          node -e "JSON.parse(require('fs').readFileSync('src/data/scores.json', 'utf8'))" && echo "✓ scores.json is valid"
+      
+      - name: Log rebuild timestamp
+        run: |
+          echo "Leaderboard rebuilt at $(date -u +'%Y-%m-%d %H:%M:%S UTC')" > build-log.txt
+          cat build-log.txt
+      
+      - name: Commit changes (if any)
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Automated leaderboard rebuild - $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+            git push
+          else
+            echo "No changes to commit"
+          fi
+        continue-on-error: true
