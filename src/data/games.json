@@ -1,0 +1,32 @@
+[
+  {
+    "id": "game_001",
+    "name": "Mini Sudoku",
+    "scoring_type": "time"
+  },
+  {
+    "id": "game_002",
+    "name": "Zip",
+    "scoring_type": "steps"
+  },
+  {
+    "id": "game_003",
+    "name": "Queens",
+    "scoring_type": "steps"
+  },
+  {
+    "id": "game_004",
+    "name": "Tango",
+    "scoring_type": "time"
+  },
+  {
+    "id": "game_005",
+    "name": "Pinpoint",
+    "scoring_type": "time"
+  },
+  {
+    "id": "game_006",
+    "name": "Crossclimb",
+    "scoring_type": "steps"
+  }
+]

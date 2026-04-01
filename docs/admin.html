@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - LinkedIn Games Leaderboard</title>
+  <link rel="stylesheet" href="../src/styles/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>⚙️ Admin Panel</h1>
+
+    <div class="tabs">
+      <button class="tab-button active" data-tab="players-tab">👥 Players</button>
+      <button class="tab-button" data-tab="games-tab">🎮 Games</button>
+    </div>
+
+    <!-- Players Tab -->
+    <div id="players-tab" class="tab-content active">
+      <h2>Manage Players</h2>
+
+      <form id="addPlayerForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="playerName">Player Name</label>
+            <input type="text" id="playerName" required placeholder="Enter player name">
+          </div>
+          <div class="form-group">
+            <button type="submit">➕ Add Player</button>
+          </div>
+        </div>
+      </form>
+
+      <table class="leaderboard">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>ID</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="playersTable">
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Games Tab -->
+    <div id="games-tab" class="tab-content">
+      <h2>Manage Games</h2>
+
+      <form id="addGameForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="gameName">Game Name</label>
+            <input type="text" id="gameName" required placeholder="Enter game name">
+          </div>
+          <div class="form-group">
+            <label for="scoringType">Scoring Type</label>
+            <select id="scoringType" required>
+              <option value="time">Time (seconds)</option>
+              <option value="steps">Steps/Moves</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <button type="submit">➕ Add Game</button>
+          </div>
+        </div>
+      </form>
+
+      <table class="leaderboard">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>ID</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="gamesTable">
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="modal">
+      <div class="modal-content">
+        <h3>⚠️ Confirm Deletion</h3>
+        <p id="confirmMessage"></p>
+        <div class="modal-buttons">
+          <button class="secondary" onclick="hideModal('confirmModal')">Cancel</button>
+          <button class="danger" id="confirmDelete">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 40px;">
+      <a href="leaderboard.html" style="display: inline-block; margin-right: 20px; padding: 12px 30px; background: #667eea; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">📊 View Leaderboard</a>
+      <a href="form.html" style="display: inline-block; padding: 12px 30px; background: #764ba2; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">📤 Submit Score</a>
+    </div>
+  </div>
+
+  <script src="../src/js/utils.js"></script>
+  <script src="../src/js/admin.js"></script>
+</body>
+</html>
