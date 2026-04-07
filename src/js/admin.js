@@ -1,11 +1,26 @@
 // Admin panel logic
 let allPlayers = [];
 let allGames = [];
+let githubToken = null;
+let githubOwner = null;
+let githubRepo = null;
 
 async function initAdmin() {
   // Load data
   allPlayers = await loadJSON('../src/data/players.json');
   allGames = await loadJSON('../src/data/games.json');
+
+  // Try to restore GitHub token from localStorage
+  const savedToken = localStorage.getItem('githubToken');
+  const savedOwner = localStorage.getItem('githubOwner');
+  const savedRepo = localStorage.getItem('githubRepo');
+  
+  if (savedToken && savedOwner && savedRepo) {
+    githubToken = savedToken;
+    githubOwner = savedOwner;
+    githubRepo = savedRepo;
+    updateAuthStatus(true);
+  }
 
   // Render tables
   renderPlayersTable();
@@ -14,6 +29,84 @@ async function initAdmin() {
   // Handle form submissions
   document.getElementById('addPlayerForm').addEventListener('submit', handleAddPlayer);
   document.getElementById('addGameForm').addEventListener('submit', handleAddGame);
+  document.getElementById('authButton').addEventListener('click', handleAuthenticate);
+}
+
+function updateAuthStatus(isAuthenticated) {
+  const statusDiv = document.getElementById('authStatus');
+  const authForm = document.getElementById('authForm');
+  
+  if (isAuthenticated) {
+    statusDiv.innerHTML = `✅ <strong>Authenticated</strong> as ${githubOwner}/${githubRepo}`;
+    statusDiv.style.color = '#28a745';
+    authForm.style.display = 'none';
+  } else {
+    statusDiv.innerHTML = '⚠️ Not authenticated - changes will only save locally';
+    statusDiv.style.color = '#dc3545';
+    authForm.style.display = 'flex';
+  }
+}
+
+async function handleAuthenticate() {
+  const tokenInput = document.getElementById('githubToken').value.trim();
+  const statusDiv = document.getElementById('authStatus');
+
+  if (!tokenInput) {
+    statusDiv.innerHTML = '❌ Please enter a token';
+    statusDiv.style.color = '#dc3545';
+    return;
+  }
+
+  try {
+    // Verify token and get repo info
+    const response = await fetch('https://api.github.com/user/repos', {
+      headers: {
+        'Authorization': `token ${tokenInput}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Invalid token or API error');
+    }
+
+    // Try to detect the current repo from the page URL
+    // Format: https://username.github.io/linkedinLeaderboard/...
+    const pathname = window.location.pathname;
+    const pathParts = pathname.split('/').filter(p => p);
+    
+    // Assuming the repo name is in the URL
+    const repoName = pathParts[1] || 'linkedinLeaderboard';
+    const ownerName = window.location.hostname.split('.')[0];
+
+    // Verify we have access to this repo
+    const repoResponse = await fetch(`https://api.github.com/repos/${ownerName}/${repoName}`, {
+      headers: {
+        'Authorization': `token ${tokenInput}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+
+    if (!repoResponse.ok) {
+      throw new Error(`No access to ${ownerName}/${repoName}`);
+    }
+
+    // Save credentials
+    githubToken = tokenInput;
+    githubOwner = ownerName;
+    githubRepo = repoName;
+    localStorage.setItem('githubToken', githubToken);
+    localStorage.setItem('githubOwner', githubOwner);
+    localStorage.setItem('githubRepo', githubRepo);
+    document.getElementById('githubToken').value = '';
+
+    updateAuthStatus(true);
+    showAlert('✅ Authenticated successfully!', 'success');
+  } catch (error) {
+    console.error('Auth error:', error);
+    updateAuthStatus(false);
+    showAlert(`❌ Authentication failed: ${error.message}`, 'error');
+  }
 }
 
 function renderPlayersTable() {
@@ -86,13 +179,28 @@ function handleAddPlayer(e) {
   // Save to localStorage
   localStorage.setItem('players', JSON.stringify(allPlayers));
 
-  showAlert(`Player "${playerName}" added successfully!`, 'success');
+  // Try to save to GitHub
+  if (githubToken && githubOwner && githubRepo) {
+    saveToGitHub('src/data/players.json', allPlayers, playerName);
+  } else {
+    showAlert(`Player "${playerName}" added (local only - not saved to GitHub)`, 'warning');
+  }
 
   // Reset form
   document.getElementById('addPlayerForm').reset();
 
   // Re-render
   renderPlayersTable();
+}
+
+async function saveToGitHub(filePath, data, itemName) {
+  try {
+    await updateJSONFile(filePath, data, githubToken, githubOwner, githubRepo);
+    showAlert(`✅ Changes saved to GitHub!`, 'success');
+  } catch (error) {
+    console.error('GitHub save error:', error);
+    showAlert(`⚠️ Added locally but failed to save to GitHub: ${error.message}`, 'warning');
+  }
 }
 
 function handleAddGame(e) {
@@ -122,7 +230,12 @@ function handleAddGame(e) {
   // Save to localStorage
   localStorage.setItem('games', JSON.stringify(allGames));
 
-  showAlert(`Game "${gameName}" added successfully!`, 'success');
+  // Try to save to GitHub
+  if (githubToken && githubOwner && githubRepo) {
+    saveToGitHub('src/data/games.json', allGames, gameName);
+  } else {
+    showAlert(`Game "${gameName}" added (local only - not saved to GitHub)`, 'warning');
+  }
 
   // Reset form
   document.getElementById('addGameForm').reset();
@@ -145,8 +258,15 @@ function deletePlayer(playerId, playerName) {
   confirmDelete.onclick = () => {
     allPlayers = allPlayers.filter(p => p.id !== playerId);
     localStorage.setItem('players', JSON.stringify(allPlayers));
+    
+    // Try to save to GitHub
+    if (githubToken && githubOwner && githubRepo) {
+      saveToGitHub('src/data/players.json', allPlayers, playerName);
+    } else {
+      showAlert(`Player "${playerName}" deleted (local only - not saved to GitHub)`, 'warning');
+    }
+    
     hideModal('confirmModal');
-    showAlert(`Player "${playerName}" deleted successfully!`, 'success');
     renderPlayersTable();
   };
 
@@ -167,8 +287,15 @@ function deleteGame(gameId, gameName) {
   confirmDelete.onclick = () => {
     allGames = allGames.filter(g => g.id !== gameId);
     localStorage.setItem('games', JSON.stringify(allGames));
+    
+    // Try to save to GitHub
+    if (githubToken && githubOwner && githubRepo) {
+      saveToGitHub('src/data/games.json', allGames, gameName);
+    } else {
+      showAlert(`Game "${gameName}" deleted (local only - not saved to GitHub)`, 'warning');
+    }
+    
     hideModal('confirmModal');
-    showAlert(`Game "${gameName}" deleted successfully!`, 'success');
     renderGamesTable();
   };
 

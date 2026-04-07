@@ -1,0 +1,22 @@
+{
+  "name": "linkedin-leaderboard",
+  "version": "1.0.0",
+  "description": "GitHub Pages-hosted leaderboard for tracking LinkedIn game scores",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "serve": "python -m http.server 8000 --directory docs"
+  },
+  "keywords": [
+    "leaderboard",
+    "linkedin",
+    "games"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  }
+}

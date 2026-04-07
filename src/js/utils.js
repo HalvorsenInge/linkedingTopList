@@ -100,11 +100,63 @@ function showAlert(message, type = 'success') {
   }, 4000);
 }
 
-// Update JSON data (for admin use with GitHub API)
-async function updateJSONFile(path, data, token) {
-  // This would be called from admin panel to commit changes to GitHub
-  // Requires GitHub API access
-  console.log('Update function would need GitHub API implementation');
+// Update JSON data via GitHub API
+async function updateJSONFile(path, data, token, owner, repo) {
+  try {
+    if (!token || !owner || !repo) {
+      throw new Error('GitHub token, owner, and repo are required');
+    }
+
+    const apiPath = path.replace(/\\/g, '/'); // Normalize path separators
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${apiPath}`;
+
+    // First, get the current file to get its SHA
+    const getResponse = await fetch(url, {
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+
+    if (!getResponse.ok && getResponse.status !== 404) {
+      throw new Error(`GitHub API error: ${getResponse.status}`);
+    }
+
+    let sha = null;
+    if (getResponse.ok) {
+      const fileData = await getResponse.json();
+      sha = fileData.sha;
+    }
+
+    // Prepare the content
+    const content = JSON.stringify(data, null, 2);
+    const encodedContent = btoa(unescape(encodeURIComponent(content)));
+
+    // Create or update the file
+    const putResponse = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: `Admin update: ${apiPath}`,
+        content: encodedContent,
+        ...(sha && { sha })
+      })
+    });
+
+    if (!putResponse.ok) {
+      const error = await putResponse.json();
+      throw new Error(`Failed to update ${apiPath}: ${error.message}`);
+    }
+
+    return { success: true, message: `Updated ${apiPath}` };
+  } catch (error) {
+    console.error('Error updating JSON file:', error);
+    throw error;
+  }
 }
 
 document.addEventListener('DOMContentLoaded', initTabs);
